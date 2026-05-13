@@ -1,0 +1,15 @@
+name: ctsync
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - fastapi
+      - uvicorn
+      - sqlalchemy
+      - psycopg2-binary
+      - alembic
+      - pydantic
+      - python-dotenv

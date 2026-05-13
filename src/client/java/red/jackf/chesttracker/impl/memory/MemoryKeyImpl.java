@@ -105,7 +105,7 @@ public class MemoryKeyImpl implements MemoryKey {
         return this.overrides;
     }
 
-    public void add(BlockPos position, Memory memory) {
+    public boolean add(BlockPos position, Memory memory) {
         // if blocked remove instead
         OverrideInfo override = this.overrides.get(position);
         ManualMode manualMode = override != null ? override.getManualMode() : ManualMode.DEFAULT;
@@ -113,8 +113,11 @@ public class MemoryKeyImpl implements MemoryKey {
                 || manualMode == ManualMode.DEFAULT && !this.memoryBank.getMetadata().getFilteringSettings().manualMode // no override but default is remember
                 || this.memories.containsKey(position); // already a memory
         if (!shouldAdd) {
-            return;
+            return false;
         }
+
+        Memory old = this.memories.get(position);
+        if (memory.isContentSame(old)) return false;
 
         // If this memory comes from an entity, replace any existing memory for the same entity id
         if (memory.entityId() != null) {
@@ -135,14 +138,12 @@ public class MemoryKeyImpl implements MemoryKey {
 
         // if no name and we require names, remove instead
         if (this.memoryBank.getMetadata().getFilteringSettings().onlyRememberNamed && !memory.hasCustomName()) {
-            remove(position);
-            return;
+            return remove(position);
         }
 
         // if empty and no name (or we don't care about names), remove instead
         if (memory.isEmpty() && (!memory.hasCustomName() || !this.memoryBank.getMetadata().getIntegritySettings().preserveNamed)) {
-            remove(position);
-            return;
+            return remove(position);
         }
 
         // TODO add context for gametime
@@ -164,6 +165,8 @@ public class MemoryKeyImpl implements MemoryKey {
             this.namedMemories.put(position, memory);
         for (BlockPos otherPosition : memory.otherPositions())
             this.connected.put(otherPosition, position);
+
+        return true;
     }
 
     public boolean remove(BlockPos position) {

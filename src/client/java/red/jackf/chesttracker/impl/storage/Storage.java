@@ -62,6 +62,9 @@ public class Storage {
 
     public static void delete(String id) {
         backend.delete(id);
+        if (ChestTrackerConfig.INSTANCE.instance().sync.enabled) {
+            ChestTracker.SYNC_MANAGER.sendClear(id);
+        }
     }
 
     public static Component getBackendLabel(String memoryBankId) {
@@ -93,6 +96,8 @@ public class Storage {
             return;
         }
 
+        if (!bank.isDirty()) return;
+
         var level = Minecraft.getInstance().level;
         HolderLookup.Provider registries = null;
 
@@ -102,5 +107,6 @@ public class Storage {
 
         bank.getMetadata().updateModified();
         backend.save(bank, registries);
+        bank.setDirty(false);
     }
 }

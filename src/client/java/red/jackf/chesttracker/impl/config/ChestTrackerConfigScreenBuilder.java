@@ -4,6 +4,7 @@ import dev.isxander.yacl3.api.*;
 import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
+import dev.isxander.yacl3.api.controller.StringControllerBuilder;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.gui.YACLScreen;
 import net.minecraft.ChatFormatting;
@@ -44,6 +45,7 @@ public class ChestTrackerConfigScreenBuilder {
                 .category(makeMainCategory(instance))
                 .category(makeMemoryAndStorageCategory(instance, parent))
                 .category(makeCompatibilityCategory(instance))
+                .category(makeSyncCategory(instance))
                 .save(instance::save)
                 .build()
                 .generateScreen(parent);
@@ -536,6 +538,41 @@ public class ChestTrackerConfigScreenBuilder {
                                 )
                                 .build()
                         )
+                        .build())
+                .build();
+    }
+
+    private static ConfigCategory makeSyncCategory(ConfigClassHandler<ChestTrackerConfig> instance) {
+        return ConfigCategory.createBuilder()
+                .name(translatable("chesttracker.config.sync"))
+                .option(Option.<Boolean>createBuilder()
+                        .name(translatable("chesttracker.config.sync.enabled"))
+                        .description(OptionDescription.of(translatable("chesttracker.config.sync.enabled.description")))
+                        .controller(opt -> BooleanControllerBuilder.create(opt)
+                                .yesNoFormatter()
+                                .coloured(true))
+                        .binding(
+                                instance.defaults().sync.enabled,
+                                () -> instance.instance().sync.enabled,
+                                b -> instance.instance().sync.enabled = b)
+                        .build())
+                .option(Option.<String>createBuilder()
+                        .name(translatable("chesttracker.config.sync.apiUrl"))
+                        .description(OptionDescription.of(translatable("chesttracker.config.sync.apiUrl.description")))
+                        .controller(StringControllerBuilder::create)
+                        .binding(
+                                instance.defaults().sync.apiUrl,
+                                () -> instance.instance().sync.apiUrl,
+                                s -> instance.instance().sync.apiUrl = s)
+                        .build())
+                .option(Option.<String>createBuilder()
+                        .name(translatable("chesttracker.config.sync.apiToken"))
+                        .description(OptionDescription.of(translatable("chesttracker.config.sync.apiToken.description")))
+                        .controller(StringControllerBuilder::create)
+                        .binding(
+                                instance.defaults().sync.apiToken,
+                                () -> instance.instance().sync.apiToken,
+                                s -> instance.instance().sync.apiToken = s)
                         .build())
                 .build();
     }

@@ -26,9 +26,13 @@ public class MemoryBankAccessImpl implements MemoryBankAccess {
         loaded = Storage.load(memoryBankId).orElseGet(() -> {
             var bank = new MemoryBankImpl(Metadata.blankWithName(creationName), new HashMap<>());
             bank.setId(memoryBankId);
+            bank.setDirty(true);
             return bank;
         });
         INSTANCE.save();
+
+        // Sync from API
+        red.jackf.chesttracker.impl.ChestTracker.SYNC_MANAGER.fetchChests(memoryBankId);
 
         return true;
     }

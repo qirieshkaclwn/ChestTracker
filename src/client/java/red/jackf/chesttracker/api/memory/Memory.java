@@ -20,10 +20,7 @@ import red.jackf.chesttracker.impl.util.Misc;
 import red.jackf.chesttracker.impl.util.ModCodecs;
 
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * <p>List of items and other details for a location. Obtained from memory keys in {@link MemoryBank}.</p>
@@ -254,5 +251,19 @@ public final class Memory {
     public void populate(MemoryKeyImpl key, BlockPos pos) {
         this.memoryKey = key;
         this.position = pos;
+    }
+
+    public boolean isContentSame(@Nullable Memory other) {
+        if (other == null) return false;
+        if (!Objects.equals(this.name, other.name)) return false;
+        if (!Objects.equals(this.container, other.container)) return false;
+        if (!Objects.equals(this.otherPositions, other.otherPositions)) return false;
+        if (!Objects.equals(this.entityId, other.entityId)) return false;
+        if (!Objects.equals(this.entityUuid, other.entityUuid)) return false;
+        if (this.fullItems.size() != other.fullItems.size()) return false;
+        for (int i = 0; i < this.fullItems.size(); i++) {
+            if (!ItemStack.matches(this.fullItems.get(i), other.fullItems.get(i))) return false;
+        }
+        return true;
     }
 }

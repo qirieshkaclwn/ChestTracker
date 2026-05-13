@@ -50,6 +50,8 @@ public class ChestTrackerConfig {
     public Storage storage = new Storage();
     @SerialEntry
     public Compatibility compatibility = new Compatibility();
+    @SerialEntry
+    public Sync sync = new Sync();
 
     public static class Gui {
         @SerialEntry(comment = "Whether to automatically focus the search bar when the GUI is opened.")
@@ -154,5 +156,16 @@ public class ChestTrackerConfig {
         this.gui.itemListTextScale = Mth.clamp(this.gui.itemListTextScale, -6, 0);
         this.rendering.nameRange = Mth.clamp(this.rendering.nameRange, 4, 24);
         if (this.storage.storageBackend == null) this.storage.storageBackend = Type.NBT;
+    }
+
+    public static class Sync {
+        @SerialEntry(comment = "Enable synchronization with a central server.")
+        public boolean enabled = false;
+
+        @SerialEntry(comment = "URL of the synchronization API.")
+        public String apiUrl = "http://localhost:8000";
+
+        @SerialEntry(comment = "API Token for authentication.")
+        public String apiToken = "your-secret-token";
     }
 }

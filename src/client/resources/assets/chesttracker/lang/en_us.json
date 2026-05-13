@@ -205,5 +205,13 @@
   "chesttracker.config.compatibility.litematica.countNearbyMaterials.description1": "Whether to add materials in nearby containers to Litematica's material calculations.",
   "chesttracker.config.compatibility.litematica.countNearbyMaterials.description2": "The range is 48 blocks from the player.",
   "chesttracker.config.searchables.required": "Requires Searchables.",
-  "chesttracker.config.searchables.notInstalled": "Searchables not loaded."
-}
+  "chesttracker.config.searchables.notInstalled": "Searchables not loaded.",
+
+  "chesttracker.config.sync": "Synchronization",
+  "chesttracker.config.sync.enabled": "Enable Synchronization",
+  "chesttracker.config.sync.enabled.description": "Enable synchronization with a central server.",
+  "chesttracker.config.sync.apiUrl": "API URL",
+  "chesttracker.config.sync.apiUrl.description": "URL of the synchronization API.",
+  "chesttracker.config.sync.apiToken": "API Token",
+  "chesttracker.config.sync.apiToken.description": "API Token for authentication."
+  }

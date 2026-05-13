@@ -15,10 +15,12 @@ import red.jackf.chesttracker.api.memory.counting.CountingPredicate;
 import red.jackf.chesttracker.api.memory.counting.StackMergeMode;
 import red.jackf.chesttracker.api.providers.MemoryLocation;
 import red.jackf.chesttracker.api.providers.ProviderUtils;
+import red.jackf.chesttracker.impl.ChestTracker;
 import red.jackf.chesttracker.impl.memory.key.ManualMode;
 import red.jackf.chesttracker.impl.memory.key.OverrideInfo;
 import red.jackf.chesttracker.impl.memory.key.SearchContext;
 import red.jackf.chesttracker.impl.memory.metadata.Metadata;
+import red.jackf.chesttracker.impl.sync.ServerUtils;
 import red.jackf.jackfredlib.api.base.codecs.JFLCodecs;
 import red.jackf.whereisit.api.SearchRequest;
 import red.jackf.whereisit.api.SearchResult;
@@ -35,11 +37,20 @@ public class MemoryBankImpl implements MemoryBank {
     private final Map<Identifier, MemoryKeyImpl> memoryKeys;
     private Metadata metadata;
     private String id;
+    private boolean dirty = false;
 
     public MemoryBankImpl(Metadata metadata, Map<Identifier, MemoryKeyImpl> keys) {
         this.metadata = metadata;
         this.memoryKeys = keys;
         this.memoryKeys.values().forEach(key -> key.setMemoryBank(this));
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    public void setDirty(boolean dirty) {
+        this.dirty = dirty;
     }
 
     public String getId() {
@@ -155,9 +166,27 @@ public class MemoryBankImpl implements MemoryBank {
 
     @Override
     public void addMemory(Identifier keyId, BlockPos location, Memory memory) {
+        this.addMemory(keyId, location, memory, true);
+    }
+
+    public void addMemory(Identifier keyId, BlockPos location, Memory memory, boolean sync) {
         MemoryKeyImpl key = this.getOrCreateKeyInternal(keyId);
 
-        key.add(location, memory);
+        Memory oldMemory = key.getMemories().get(location);
+        boolean changed = key.add(location, memory);
+        if (changed) this.dirty = true;
+
+        // Sync to API
+        if (changed && sync && red.jackf.chesttracker.impl.config.ChestTrackerConfig.INSTANCE.instance().sync.enabled) {
+            ChestTracker.SYNC_MANAGER.sendChestUpdate(
+                    this.getId(),
+                    ServerUtils.getWorldId(),
+                    keyId,
+                    location,
+                    memory,
+                    oldMemory
+            );
+        }
 
         // if we didn't want the memory
         if (key.isEmpty()) {
@@ -167,12 +196,41 @@ public class MemoryBankImpl implements MemoryBank {
 
     @Override
     public void removeMemory(Identifier key, BlockPos pos) {
+        this.removeMemory(key, pos, true);
+    }
+
+    public void removeMemory(Identifier key, BlockPos pos, boolean sync) {
         MemoryKeyImpl memoryKey = this.memoryKeys.get(key);
         if (memoryKey != null) {
-            memoryKey.remove(pos);
-            if (memoryKey.isEmpty()) {
-                this.memoryKeys.remove(key);
+            boolean changed = memoryKey.remove(pos);
+            if (changed) {
+                this.dirty = true;
+                if (memoryKey.isEmpty()) {
+                    this.memoryKeys.remove(key);
+                }
+
+                // Sync to API
+                if (sync && red.jackf.chesttracker.impl.config.ChestTrackerConfig.INSTANCE.instance().sync.enabled) {
+                    ChestTracker.SYNC_MANAGER.sendChestDelete(
+                            this.getId(),
+                            ServerUtils.getWorldId(),
+                            pos
+                    );
+                }
             }
+        }
+    }
+
+    public void clear() {
+        this.clear(true);
+    }
+
+    public void clear(boolean sync) {
+        if (this.memoryKeys.isEmpty()) return;
+        this.memoryKeys.clear();
+        this.dirty = true;
+        if (sync && red.jackf.chesttracker.impl.config.ChestTrackerConfig.INSTANCE.instance().sync.enabled) {
+            ChestTracker.SYNC_MANAGER.sendClear(this.getId());
         }
     }
 
@@ -184,7 +242,9 @@ public class MemoryBankImpl implements MemoryBank {
         if (mode == ManualMode.DEFAULT && !overrides.containsKey(pos)) return;
 
         var override = overrides.computeIfAbsent(pos, pos1 -> new OverrideInfo());
+        if (override.getManualMode() == mode) return;
         override.setManualMode(mode);
+        this.dirty = true;
 
         if (!override.shouldKeep()) {
             overrides.remove(pos);
@@ -205,7 +265,9 @@ public class MemoryBankImpl implements MemoryBank {
         name = shouldRemove ? null : name.strip();
 
         OverrideInfo override = overrides.computeIfAbsent(pos, pos1 -> new OverrideInfo());
+        if (Objects.equals(override.getCustomName(), name)) return;
         override.setCustomName(name);
+        this.dirty = true;
 
         // set to keep when adding a custom name
         if (!shouldRemove) {
@@ -224,4 +286,5 @@ public class MemoryBankImpl implements MemoryBank {
             }
         }
     }
+
 }
