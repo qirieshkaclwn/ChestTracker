@@ -17,7 +17,20 @@ plugins {
 
 val grgit: Grgit? = project.grgit
 
-var canPublish = grgit != null && System.getenv("RELEASE") != null
+fun env(key: String): String? {
+    if (file(".env").exists()) {
+        val lines = file(".env").readLines()
+        for (line in lines) {
+            val parts = line.split("=", limit = 2)
+            if (parts.size == 2 && parts[0].trim() == key) {
+                return parts[1].trim()
+            }
+        }
+    }
+    return System.getenv(key)
+}
+
+var canPublish = grgit != null && env("RELEASE") != null
 
 fun getVersionSuffix(): String {
     return grgit?.branch?.current()?.name ?: "nogit+${properties["minecraft_version"]}"
@@ -25,8 +38,8 @@ fun getVersionSuffix(): String {
 
 group = properties["maven_group"]!!
 
-if (System.getenv().containsKey("NEW_TAG")) {
-    version = System.getenv("NEW_TAG").substring(1)
+if (env("NEW_TAG") != null) {
+    version = env("NEW_TAG")!!.substring(1)
 } else {
     val versionStr = "${properties["mod_version"]}+${properties["minecraft_version"]!!}"
     canPublish = false
@@ -101,31 +114,33 @@ repositories {
         }
     }
 
-    // JackFredLib
+    // JackFred Maven
     maven {
-        name = "JackFredLib-GitHub"
+        name = "JackFredMaven"
+        url = uri("https://maven.jackf.red/releases/")
+        content {
+            includeGroupAndSubgroups("red.jackf")
+        }
+    }
+
+    // Ponuing's JackFredLib (GitHub Packages)
+    maven {
+        name = "PonuingJackFredLib"
         url = uri("https://maven.pkg.github.com/ponuing/JackFredLib")
         credentials {
-            username = System.getenv("GITHUB_ACTOR")
-            password = System.getenv("GITHUB_TOKEN")
+            username = env("GITHUB_ACTOR") ?: project.findProperty("gpr.user") as String?
+            password = env("GITHUB_TOKEN") ?: project.findProperty("gpr.key") as String?
         }
         content {
             includeGroupAndSubgroups("red.jackf")
         }
     }
 
-    // Where Is It
+    // JitPack
     maven {
-        name = "WhereIsIt-GitHub"
-        url = uri("https://maven.pkg.github.com/ponuing/WhereIsIt")
-        credentials {
-            username = System.getenv("GITHUB_ACTOR")
-            password = System.getenv("GITHUB_TOKEN")
-        }
-        content {
-            includeGroup("red.jackf")
-        }
+        url = uri("https://jitpack.io")
     }
+
     // Shulker Box Tooltip
     maven {
         name = "MisterPeModder"
@@ -188,8 +203,20 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${properties["fabric-api_version"]}")
 
     // Where is it
-    modImplementation("red.jackf:whereisit:${properties["where-is-it_version"]}")
-    include("red.jackf:whereisit:${properties["where-is-it_version"]}")
+    modImplementation("maven.modrinth:where-is-it-port:${properties["where-is-it_version"]}")
+    include("maven.modrinth:where-is-it-port:${properties["where-is-it_version"]}")
+
+    // JackFredLib
+    modImplementation("red.jackf.jackfredlib:jackfredlib-base:${properties["jackfredlib-base_version"]}")
+    modImplementation("red.jackf.jackfredlib:jackfredlib-colour:${properties["jackfredlib-colour_version"]}")
+    modImplementation("red.jackf.jackfredlib:jackfredlib-lying:${properties["jackfredlib-lying_version"]}")
+    modImplementation("red.jackf.jackfredlib:jackfredlib-gps:${properties["jackfredlib-gps_version"]}")
+    modImplementation("red.jackf.jackfredlib:jackfredlib-toasts:${properties["jackfredlib-toasts_version"]}")
+    include("red.jackf.jackfredlib:jackfredlib-base:${properties["jackfredlib-base_version"]}")
+    include("red.jackf.jackfredlib:jackfredlib-colour:${properties["jackfredlib-colour_version"]}")
+    include("red.jackf.jackfredlib:jackfredlib-lying:${properties["jackfredlib-lying_version"]}")
+    include("red.jackf.jackfredlib:jackfredlib-gps:${properties["jackfredlib-gps_version"]}")
+    include("red.jackf.jackfredlib:jackfredlib-toasts:${properties["jackfredlib-toasts_version"]}")
 
     // Config
     modImplementation("dev.isxander:yet-another-config-lib:${properties["yacl_version"]}") {
